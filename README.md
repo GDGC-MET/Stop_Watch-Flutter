@@ -20,12 +20,6 @@ The app utilizes several dependencies to deliver its functionalities:
 - `cupertino_icons`: For iOS-style icons.
 - `provider`: For state management in the app.
 
-## Output
-
-Here is a screenshot of the application interface:
-
-![Stopwatch App Interface](Screenshot 2024-10-13 014044.png)
-
 ## Getting Started
 
 To run this project locally, ensure you have Flutter installed. Follow these steps:
@@ -46,3 +40,10 @@ To run this project locally, ensure you have Flutter installed. Follow these ste
    ```bash
    flutter run
    ```
+
+## Output
+
+Here is a screenshot of the application interface:
+
+![Screenshot 2024-10-13 014044](https://github.com/user-attachments/assets/bf5e57ee-5ad0-4fc1-8f88-882208f92524)
+
