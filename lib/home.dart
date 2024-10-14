@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart'; // Add this dependency in pubspec.yaml
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,12 +14,15 @@ class _HomeState extends State<Home> {
   Color highlight = Colors.redAccent;
 
   List<Map<String, String>> lapsList = [];
-
   Timer? _timer;
   Duration _elapsedTime = Duration.zero;
+  Duration _countdownTime = Duration(minutes: 1); // Default countdown time
+  bool isCountdown = false;
 
   bool isStart = false;
   bool isPause = false;
+
+  AudioPlayer audioPlayer = AudioPlayer();
 
   String timeFormat(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -32,11 +36,33 @@ class _HomeState extends State<Home> {
     setState(() {
       isStart = true;
       isPause = false;
+      isCountdown = false;
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _elapsedTime += const Duration(seconds: 1);
+      });
+    });
+  }
+
+  void startCountdown() {
+    setState(() {
+      isCountdown = true;
+      isStart = true;
+      isPause = false;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_countdownTime.inSeconds > 0) {
+          _countdownTime -= const Duration(seconds: 1);
+        } else {
+          audioPlayer.play('alert_sound.mp3'); // Ensure you have this file in assets
+          _timer?.cancel();
+          isStart = false;
+          isCountdown = false;
+        }
       });
     });
   }
@@ -56,6 +82,8 @@ class _HomeState extends State<Home> {
     setState(() {
       isStart = false;
       isPause = false;
+      isCountdown = false;
+      _countdownTime = Duration(minutes: 1); // Reset countdown time
     });
   }
 
@@ -65,6 +93,7 @@ class _HomeState extends State<Home> {
       _elapsedTime = Duration.zero;
       isStart = false;
       isPause = false;
+      isCountdown = false;
     });
   }
 
@@ -87,15 +116,12 @@ class _HomeState extends State<Home> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              resetWatch();
-            },
+            onPressed: resetWatch,
           ),
         ],
       ),
       body: Stack(
         children: [
-          // Completely overlapping Timer Display
           Positioned(
             top: 30,
             left: 10,
@@ -103,37 +129,25 @@ class _HomeState extends State<Home> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: Colors.green, // Clashing color
+                color: Colors.green,
                 borderRadius: BorderRadius.circular(150),
-                border: Border.all(color: Colors.purple, width: 10), // Inconsistent styling
+                border: Border.all(color: Colors.purple, width: 10),
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      timeFormat(_elapsedTime),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 60,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      isCountdown ? timeFormat(_countdownTime) : timeFormat(_elapsedTime),
+                      style: const TextStyle(color: Colors.white, fontSize: 60, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Lap Now!',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                      ),
-                    ),
+                    const Text('Lap Now!', style: TextStyle(color: Colors.black, fontSize: 20)),
                   ],
                 ),
               ),
             ),
           ),
-
-          // Overlapping Laps List in a chaotic way
           Positioned(
             top: 200,
             left: 50,
@@ -143,7 +157,6 @@ class _HomeState extends State<Home> {
               child: ListView.builder(
                 itemCount: lapsList.length,
                 padding: const EdgeInsets.only(left: 10, right: 10),
-                scrollDirection: Axis.vertical,
                 itemBuilder: (context, index) {
                   final lapItem = lapsList[index];
                   return Container(
@@ -153,24 +166,13 @@ class _HomeState extends State<Home> {
                     decoration: BoxDecoration(
                       color: Colors.redAccent,
                       borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 10,
-                        ),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          lapItem['lap']!,
-                          style: const TextStyle(color: Colors.black, fontSize: 16),
-                        ),
-                        Text(
-                          lapItem['time']!,
-                          style: const TextStyle(color: Colors.black, fontSize: 14),
-                        ),
+                        Text(lapItem['lap']!, style: const TextStyle(color: Colors.black, fontSize: 16)),
+                        Text(lapItem['time']!, style: const TextStyle(color: Colors.black, fontSize: 14)),
                       ],
                     ),
                   );
@@ -178,8 +180,6 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-
-          // Control Buttons
           Positioned(
             bottom: 20,
             left: 0,
@@ -187,7 +187,6 @@ class _HomeState extends State<Home> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Start/Pause Button with exaggerated design
                 InkWell(
                   onTap: () {
                     if (isStart) {
@@ -204,19 +203,13 @@ class _HomeState extends State<Home> {
                     decoration: BoxDecoration(
                       color: Colors.yellow,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black38, blurRadius: 5),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 5)],
                     ),
                     child: Center(
-                      child: Text(
-                        isStart ? 'PAUSE' : isPause ? 'RESUME' : 'START',
-                        style: const TextStyle(color: Colors.black, fontSize: 24),
-                      ),
+                      child: Text(isStart ? 'PAUSE' : isPause ? 'RESUME' : 'START', style: const TextStyle(color: Colors.black, fontSize: 24)),
                     ),
                   ),
                 ),
-                // Stop/Reset Button with chaotic design
                 InkWell(
                   onTap: () {
                     if (isStart || isPause) {
@@ -231,59 +224,32 @@ class _HomeState extends State<Home> {
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black38, blurRadius: 5),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 5)],
                     ),
                     child: Center(
-                      child: Text(
-                        isStart || isPause ? 'STOP' : 'RESET',
-                        style: const TextStyle(color: Colors.white, fontSize: 24),
-                      ),
+                      child: Text(isStart || isPause ? 'STOP' : 'RESET', style: const TextStyle(color: Colors.white, fontSize: 24)),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Extra chaotic buttons
           Positioned(
             bottom: 150,
             left: 50,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.pink,
-                elevation: 10,
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.pink, elevation: 10, padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15)),
               onPressed: addLap,
               child: const Text('Add Lap', style: TextStyle(fontSize: 20)),
             ),
           ),
           Positioned(
-            top: 450,
-            right: 10,
-            child: IconButton(
-              icon: const Icon(Icons.add),
-              color: Colors.brown,
-              iconSize: 50,
-              onPressed: () {},
-            ),
-          ),
-          Positioned(
-            top: 480,
-            right: 80,
-            child: Container(
-              width: 100,
-              height: 50,
-              color: Colors.green,
-              child: Center(
-                child: const Text(
-                  'Chaos',
-                  style: TextStyle(color: Colors.black, fontSize: 24),
-                ),
-              ),
+            bottom: 150,
+            right: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, elevation: 10, padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15)),
+              onPressed: startCountdown,
+              child: const Text('Start Countdown', style: TextStyle(fontSize: 20)),
             ),
           ),
         ],
